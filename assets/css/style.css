@@ -12,18 +12,32 @@ nav a {
     margin: 0 15px;
     text-decoration: none;
     color: #000;
+    position: relative;
 }
-h1 {
+nav a:after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -5px;
+    left: 0;
+    background-color: yellow;
+    transition: width 0.3s ease;
+}
+nav a:hover:after {
+    width: 100%;
+}
+.highlight {
     background-color: yellow;
     color: blue;
-    padding: 10px;
-    margin: 0;
+    padding: 2px 5px;
+    display: inline;
 }
-h2 {
-    background-color: #add8e6;
-    color: blue;
-    padding: 10px;
-    margin: 20px 0;
+h1 .highlight {
+    font-size: 1.5em;
+}
+h2 .highlight {
+    font-size: 1.2em;
 }
 ul {
     list-style-type: none;
