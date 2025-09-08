@@ -1,0 +1,52 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+nav {
+    background-color: #f8f8f8;
+    padding: 10px;
+}
+nav a {
+    margin: 0 15px;
+    text-decoration: none;
+    color: #000;
+}
+h1 {
+    background-color: yellow;
+    color: blue;
+    padding: 10px;
+    margin: 0;
+}
+h2 {
+    background-color: #add8e6;
+    color: blue;
+    padding: 10px;
+    margin: 20px 0;
+}
+ul {
+    list-style-type: none;
+    padding: 0;
+    text-align: left;
+    display: inline-block;
+}
+ul li {
+    margin: 10px 0;
+}
+ul li a {
+    color: blue;
+    text-decoration: none;
+}
+ul li a:hover {
+    text-decoration: underline;
+}
+.email {
+    color: #0066cc;
+    text-decoration: underline;
+}
+.post-content {
+    text-align: left;
+    max-width: 800px;
+    margin: 0 auto;
+}
