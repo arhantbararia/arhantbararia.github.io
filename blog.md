@@ -1,6 +1,6 @@
 ---
 layout: page
-title: <span class="highlight">Blog</span>
+title: 
 permalink: /blog/
 ---
 {% for post in site.posts %}
