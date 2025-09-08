@@ -6,8 +6,14 @@
     <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
 </head>
 <body>
-    {% include header.html %}
-    {{ content }}
+    <nav>
+        <a href="/">home</a>
+        <a href="/blog/">blog</a>
+        <a href="#">linktree</a>
+    </nav>
+    <div class="content-section">
+        {{ content }}
+    </div>
     {% include footer.html %}
 </body>
 </html>

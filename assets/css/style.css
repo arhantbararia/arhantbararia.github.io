@@ -1,12 +1,15 @@
 body {
     font-family: Arial, sans-serif;
-    text-align: center;
-    margin: 0;
-    padding: 0;
+    margin: 0 auto;
+    padding: 20px;
+    max-width: 800px; /* Limits width for better readability */
+    line-height: 1.6;
 }
 nav {
     background-color: #f8f8f8;
-    padding: 10px;
+    padding: 10px 0;
+    margin-bottom: 20px;
+    text-align: center;
 }
 nav a {
     margin: 0 15px;
@@ -34,19 +37,25 @@ nav a:hover:after {
     display: inline;
 }
 h1 .highlight {
-    font-size: 1.5em;
+    font-size: 2em; /* Larger for emphasis */
 }
 h2 .highlight {
-    font-size: 1.2em;
+    font-size: 1.5em; /* Consistent with h1 scaling */
+}
+.content-section {
+    margin: 20px 0;
+    text-align: center;
 }
 ul {
     list-style-type: none;
     padding: 0;
     text-align: left;
     display: inline-block;
+    margin: 10px 0;
 }
 ul li {
     margin: 10px 0;
+    text-align: left;
 }
 ul li a {
     color: blue;
@@ -61,6 +70,10 @@ ul li a:hover {
 }
 .post-content {
     text-align: left;
-    max-width: 800px;
-    margin: 0 auto;
+    margin: 20px 0;
+}
+footer {
+    margin-top: 40px;
+    font-size: 0.9em;
+    color: #666;
 }
