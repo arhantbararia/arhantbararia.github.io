@@ -3,13 +3,12 @@ layout: post
 title: Notification Systems: Intution
 date: 2025-11-11
 ---
-## Notification Systems: Intution
 
 Ever wondered what happens behind that little bell icon when you get a “UserA liked your post” alert?
 
 That — right there — is a notification system in action. It’s one of those invisible engines quietly keeping your app engaging and responsive. Let’s peel back the curtain and see how it really works.
 
-1. What is a Notification System, Really?
+## 1. What is a Notification System, Really?
 
 At its core, a notification system does one job:
 
@@ -25,7 +24,7 @@ Emails: for things that can wait a bit longer
 
 Simple on the surface — but under the hood, it’s a system that deals with millions (sometimes billions) of tiny events every day.
 
-2. When an Event Happens…
+## 2. When an Event Happens…
 
 Let’s say UserA likes your post.
 
@@ -49,7 +48,7 @@ This small JSON payload is the trigger — the system’s way of saying:
 
 “Hey, something interesting just happened. Figure out who cares!”
 
-3. Handling the Load: Why Queues Are Our Best Friends
+## 3. Handling the Load: Why Queues Are Our Best Friends
 
 Now imagine thousands of people liking, commenting, and following all at once.
 
@@ -61,7 +60,7 @@ Every event gets pushed into a message queue (like Kafka or RabbitMQ).
 
 This means the main app can move on quickly — no waiting — while background workers handle notifications asynchronously. It’s like hiring a delivery service instead of hand-delivering every message yourself.
 
-4. The Worker: The Brain Behind Notifications
+## 4. The Worker: The Brain Behind Notifications
 
 Once the event lands in the queue, a worker picks it up and gets to work:
 
@@ -76,7 +75,7 @@ Builds the message:
 
 User preferences are often cached in Redis for speed, while fallback logic resides in a database.
 
-5. Fan-Out: Delivering Through the Right Channels
+## 5. Fan-Out: Delivering Through the Right Channels
 
 Now that the message is ready, it’s time to deliver.
 Each channel has its own delivery method:
@@ -89,7 +88,7 @@ Email: Queue it up in SendGrid, SES, or any transactional email provider.
 
 This stage is known as fan-out, since one event can trigger multiple notification types.
 
-6. Failure Happens — Let’s Handle It Gracefully
+## 6. Failure Happens — Let’s Handle It Gracefully
 
 Things break. Maybe a push token is expired or the email provider is down.
 
@@ -110,7 +109,7 @@ The app displays the results with read/unread flags, timestamps, and maybe even 
 
 That familiar feed under your bell icon? It’s powered by a simple query returning messages stored in the database — neat, right?
 
-8. Scaling Gracefully
+## 8. Scaling Gracefully
 
 At scale, small inefficiencies turn into big problems. Large systems add a few tricks:
 
@@ -126,7 +125,7 @@ Batching → To merge low-priority alerts
 
 These optimizations keep the experience smooth, even as user activity explodes.
 
-9. Making It Reliable
+## 9. Making It Reliable
 
 To keep trust high and noise low, reliability features are a must:
 
@@ -140,7 +139,7 @@ Metrics & Alerts: Track success/failure rates and queue growth
 
 Reliability isn’t about perfection — it’s about graceful degradation when things go wrong.
 
-10. Wrapping Up
+## 10. Wrapping Up
 
 A notification system might seem simple, but under the hood, it’s a small distributed system of its own — juggling scale, latency, and reliability all at once.
 
