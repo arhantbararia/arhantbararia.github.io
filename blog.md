@@ -1,6 +1,6 @@
 ---
 layout: page
-title: 
+title: Blogs
 permalink: /blog/
 ---
 {% for post in site.posts %}
