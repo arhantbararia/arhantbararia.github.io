@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Notification Systems: Intution
+title: Notification Systems, Intution
 date: 2025-11-11
 ---
 
