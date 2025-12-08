@@ -39,11 +39,7 @@ When that event occurs, the application triggers an API call to something like /
   "receiver": "UserB",
   "object": "Post123"
 }
-
-
 ```
-
-
 This small JSON payload is the trigger the system’s way of saying:
 
 “Hey, something interesting just happened. Figure out who cares!”
