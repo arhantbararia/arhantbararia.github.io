@@ -1,317 +1,303 @@
 ---
 layout: post
-title: Orchastrator, skeleton
+title: Orchestrator Skeleton
 date: 2025-12-08
 ---
 
 
- I like to translate
- that model into skeleton code.
- This typically allows me to start thinking
- about the implementation in a concrete way without getting
- too deep into the weeds just yet
+## Translating a Model into Code (Sort of)
 
+I like to translate a system model into **skeleton code** early on.
+This helps me think about the implementation in a more concrete way without getting too deep into details too soon.
 
+At a high level, an orchestrator naturally breaks down into a few obvious components:
 
- most obvious components are the manager, worker, and
- scheduler. The foundation of each of these components,
- however, is the task,
+* **Manager**
+* **Worker**
+* **Scheduler**
 
+At the foundation of all of these components, however, is the **Task**.
+Everything in the system exists to create, move, run, stop, or observe tasks.
 
-The basic skeleton I found online.
-![alt text](<../images/Screenshot 2025-12-09 014025.jpg>)
+Below is a basic skeleton I found online that inspired this structure:
 
+![Basic Skeleton](../images/Screenshot%202025-12-09%20014025.jpg)
 
+---
 
-## The task skeleton
+## The Task Skeleton
 
-### `State`: 
-Pending:  task has been enqueued
-Scheduled: system has determined there
- is a machine that can run the task, but it is in the process of
- sending the task to the selected machine, or the selected
- machine is in the process of starting the task. 
+### Task States
 
-Running:  if the
- selected machine successfully starts the task
+A task in the system moves through a well-defined lifecycle. I model this explicitly using states.
 
- Completed:  task completing its work
-successfully or being stopped by a user, the task moves into
+* **Pending**
+  The task has been enqueued but not yet scheduled.
 
-Failed:  at any point the task crashes or
- stops working as expected, the task then moves into a state
+* **Scheduled**
+  The system has decided which machine should run the task, but the task is still in the process of being sent or started.
 
+* **Running**
+  The selected machine has successfully started the task.
 
-![alt text](<../images/Screenshot 2025-12-09 014218.jpg>)
+* **Completed**
+  The task finished successfully or was stopped intentionally by a user.
 
-###  `ID `:
-we’ll use universally
- unique identifiers (UUID)
+* **Failed**
+  The task crashed or stopped working as expected at any point.
 
- Task struct { 
-    ID      uuid.UUID 
-    Name    string 
-    State   State 
+![Task State Diagram](../images/Screenshot%202025-12-09%20014218.jpg)
+
+---
+
+### Task Identity
+
+Each task needs a stable identifier.
+For this, I use **UUIDs**.
+
+```go
+type Task struct {
+    ID    uuid.UUID
+    Name  string
+    State State
 }
-
- Note that the State field is of type State, which we
- defined previously.
-
- ###`Image`:
- what Docker image a task should use,
-
-### `Memory` and `Disk` will help the:
- system identify the number of resources a task needs.
-
-
-### `ExposedPorts` and `PortBindings` are used by Docker
-
-### `RestartPolicy` 
-
-### `StartTime`
-
-### `FinishTime`
-
-```
-type Task struct { 
-    ID            uuid.UUID 
-    ContainerID   string 
-    Name          string 
-    State         State 
-    Image         string 
-    CPU           float64 
-    Memory        int64 
-    Disk          int64 
-    ExposedPorts  nat.PortSet 
-    PortBindings  map[string]string 
-    RestartPolicy string 
-    StartTime     time.Time 
-    FinishTime    time.Time 
-}
-
 ```
 
+The `State` field refers to the task state enum defined earlier.
 
- how does a user tell the system to stop a
-task
+---
 
+### Task Configuration
 
- . 
-├── main.go 
-├── manager 
-│   └── manager.go 
-├── node 
-│   └── node.go 
-├── scheduler 
-│   └── scheduler.go 
-├── task 
-│   └── task.go 
-└── worker 
+As the orchestrator evolves, the task structure needs more metadata:
+
+* **Image** – Docker image to run
+* **CPU, Memory, Disk** – resource requirements
+* **ExposedPorts / PortBindings** – Docker networking
+* **RestartPolicy** – restart behavior
+* **StartTime / FinishTime** – lifecycle tracking
+
+A more complete task structure looks like this:
+
+```go
+type Task struct {
+    ID            uuid.UUID
+    ContainerID   string
+    Name          string
+    State         State
+    Image         string
+    CPU           float64
+    Memory        int64
+    Disk          int64
+    ExposedPorts  nat.PortSet
+    PortBindings  map[string]string
+    RestartPolicy string
+    StartTime     time.Time
+    FinishTime    time.Time
+}
+```
+
+One important open question here is:
+**How does a user tell the system to stop a task?**
+This becomes clearer once we introduce events.
+
+---
+
+## Project Structure
+
+At this stage, the repository layout looks something like this:
+
+```text
+.
+├── main.go
+├── manager
+│   └── manager.go
+├── node
+│   └── node.go
+├── scheduler
+│   └── scheduler.go
+├── task
+│   └── task.go
+└── worker
     └── worker.go
+```
 
+Each major concept gets its own package.
 
+---
 
- ## TaskEvent struct 
-  The event will need a
- State, which will indicate the `state` the task should
- transition to (e.g., from Running to Completed)
+## TaskEvent
 
+Tasks don’t change state by themselves.
+State transitions are triggered via **events**.
 
- Timestamp   Timestamp to record the time the event
- was requested
+A `TaskEvent` represents a request to move a task from one state to another.
 
-  Task
- It
- will be an internal object that our system uses to trigger
- tasks from one state to another.
+* **State** – the target state (e.g., Running → Completed)
+* **Timestamp** – when the event was requested
+* **Task** – the task being affected
 
-
-
- type TaskEvent struct { 
-    ID        uuid.UUID 
-    State     State 
-    Timestamp time.Time 
-    Task      Task 
+```go
+type TaskEvent struct {
+    ID        uuid.UUID
+    State     State
+    Timestamp time.Time
+    Task      Task
 }
+```
 
+This is an internal object used by the system to drive task state transitions.
 
-## The Worker Skeleton 
- we can think of the worker as the next layer
- that sits atop the foundation
+---
 
+## The Worker Skeleton
 
- 1. Run tasks as Docker containers
- 2. Accept tasks to run from a manager
- 3. Provide relevant statistics to the manager for the
- purpose of scheduling tasks
- 4. Keep track of its tasks and their state
+The worker is the layer that actually runs tasks.
 
-  worker will need to
- run and keep track of tasks. To do that, the worker will use a
- field named `Db`, which will be a map of UUIDs to tasks.
+Responsibilities:
 
- accepting tasks from a
- manager, the worker will want a `Queue` field.
+1. Run tasks as Docker containers
+2. Accept tasks from the manager
+3. Provide statistics for scheduling decisions
+4. Track tasks and their states locally
 
+To do this, the worker maintains:
 
-  `TaskCount` field as a convenient way of
- keeping track of the number of tasks a worker has at any
- given time
+* **Db** – an in-memory map of task IDs to tasks
+* **Queue** – tasks sent from the manager
+* **TaskCount** – number of tasks currently running
 
-
+```go
 type Worker struct {
-	Name  string
-	Queue queue.Queue
-	Db    map[uuid.UUID]*task.Task
-	TaskCount int
-	
+    Name      string
+    Queue     queue.Queue
+    Db        map[uuid.UUID]*task.Task
+    TaskCount int
 }
+```
 
+### Worker Methods
 
-some methods that will do the actual work.
-`RunTask` method
-will handle running a task on the machine where the worker
- is running.
-RunTask method will be responsible for identifying the
- task’s current state and then either starting or stopping a
- task based on the state
+Some key methods that actually do the work:
 
+* **RunTask**
+  Inspects the task state and decides whether to start or stop it.
 
- `StartTask` `StopTask` method, which will do exactly as their name says
+* **StartTask**
+  Starts a task container.
 
+* **StopTask**
+  Stops a running task.
 
-` CollectStats` method, which can be used to periodically
- collect statistics about the worker
+* **CollectStats**
+  Periodically gathers resource usage and task metrics.
 
-
+---
 
 ## The Manager Skeleton
 
-1. Accept requests from users to start and stop tasks
- 2. Schedule tasks onto worker machines
- 3. Keep track of tasks, their states, and the machine on
- which they run
+The manager coordinates the entire system.
 
-  The Manager will have a queue, represented by
- the `pending` field, The queue will allow the Manager to
- handle tasks on a FIFO basis
+Responsibilities:
 
+1. Accept user requests to start or stop tasks
+2. Schedule tasks onto workers
+3. Track task state and task-to-worker assignments
 
- two in-memory databases: one to store tasks and another to
- store task events. The databases are maps of strings to
- `Task` and `TaskEven`t, respectively.
+Key fields:
 
- workers, which will be a slice of strings need to keep track of the workers in the
- cluster
+* **pending** – a FIFO queue of tasks waiting to be scheduled
+* **tasks** – in-memory database of tasks
+* **events** – in-memory database of task events
+* **workers** – list of worker names in the cluster
 
+To track assignments:
 
- the jobs that are assigned to each worker.
+* **WorkerTaskMap** – maps worker name → task IDs
+* **TaskWorkerMap** – maps task ID → worker name
 
-the jobs that are assigned to each worker. We’ll use a field
- called `WorkerTaskMap`, which will be a map of strings to
- task UUIDs
+The manager also needs scheduling logic.
 
+### Manager Methods
 
-  easy way to
- find the worker running a task given a task name. Here we’ll
- use a field called `TaskWorkerMap`, which is a map of task
- UUIDs to strings, where the string is the name of the worker.
+* **selectWorker**
+  Chooses the best worker for a task based on resource requirements.
 
+* **UpdateTasks**
+  Refreshes task states and typically triggers `CollectStats` on workers.
 
-  you can see that the manager needs
- to schedule tasks onto workers.
+* **SendWork**
+  Sends tasks to the selected worker.
 
- create a method on
- our Manager struct called `selectWorker` to perform that
- task. This method will be responsible for looking at the
- requirements specified in a Task evaluating the
- resources available in the pool of workers to see which
- worker is best suited to run the task.
+---
 
+## The Scheduler Skeleton
 
-  `UpdateTasks` method Ultimately, this
- method will end up triggering a call to a worker’s
- CollectStats method
+Scheduling logic deserves its own abstraction.
 
-  `SendWork`  the Manager obviously needs to send tasks
- to workers.
+Responsibilities:
 
+1. Select candidate workers for a task
+2. Score those workers
+3. Pick the best one
 
+Initially, a **round-robin** scheduler is enough:
 
+* Track the last worker that received a task
+* Assign the next task to the next worker in the list
 
- ##  The scheduler skeleton
+To allow flexibility, scheduling is defined via an interface:
 
-  1. Determine a set of candidate workers on which a task
- could run
- 2. Score the candidate workers from best to worst
- 3. Pick the worker with the best score
-
- round-robin algorithm
-
- identified which worker got the most recent task. Then,
- when the next task came in, the scheduler simply picked the
- next worker in its list
-
-
- Furthermore, I might want more flexibility
- in how tasks are assigned to workers. Can try different algos then
-
- interface to specify the methods a type
- must implement to be considered a Scheduler.
-
- these methods are
- SelectCandidateNodes, Score, and Pick
-
- 
- Scheduler interface { 
-    SelectCandidateNodes() 
-    Score() 
-    Pick() 
+```go
+type Scheduler interface {
+    SelectCandidateNodes()
+    Score()
+    Pick()
 }
+```
 
-## The node skeleton
+This makes it easy to experiment with different scheduling algorithms later.
 
-Worker has a physical aspect to it, however, in
- that it runs on a physical machine itself, and it also causes
- tasks to run on a physical machine. Moreover, it needs to
- know about the underlying machine to gather stats about
- the machine that the manager will use for scheduling
- decisions. We’ll call this physical aspect of the Worker a
- `Node`
+---
 
- a node is an object that represents
- any machine in our cluster
- `Name`
+## The Node Skeleton
 
+A worker has a physical aspect: it runs on a machine.
+That physical machine is modeled as a **Node**.
 
- `Ip`which the manager will want
- to know in order to send tasks to it
+A node represents any machine in the cluster.
 
- physical machine also
- has a certain amount of `Memory` and `Disk` space that tasks
- can use. These attributes represent maximum amounts
+Key fields:
 
+* **Name**
+* **IP** – used by the manager to communicate
+* **Memory / Disk** – total available resources
+* **MemoryAllocated / DiskAllocated** – resources currently in use
+* **TaskCount** – number of tasks running on the node
 
- , the tasks on a machine will be using some
- amount of memory and disk, which we can call
- `MemoryAllocated` and `DiskAllocated`
+The node exists primarily to expose machine-level stats for scheduling decisions.
 
-  zero or more tasks, which we can track using a
- `TaskCount` field.
+---
 
- ## The main runner
+## The Main Runner
 
-we will define the main.go as: 
+Finally, `main.go` ties everything together.
 
-  Create a Task object
- Create a TaskEvent object
- Print the Task and TaskEvent objects
- Create a Worker object
- Print the Worker object
- Call the worker’s methods
- Create a Manager object
- Call the manager’s methods
- Create a Node object
- Print the Node objec
+At this early stage, it does very basic wiring:
 
- 
+* Create a `Task`
+* Create a `TaskEvent`
+* Print both
+* Create a `Worker`
+* Print the worker
+* Call worker methods
+* Create a `Manager`
+* Call manager methods
+* Create a `Node`
+* Print the node
+
+Nothing fancy yet — just enough structure to start reasoning about how all the pieces fit together.
+
+---
+
+This skeleton doesn’t *do* much yet, but it gives me a solid mental model and a concrete starting point to iterate on.
