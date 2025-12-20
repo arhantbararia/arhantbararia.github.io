@@ -1,192 +1,302 @@
 ---
 layout: post
-title: Orchestrator, The Worker II, API
+title: Orchestrator, The Worker API
 date: 2025-12-19
 ---
 
 
-Last time we defined methods for pulling
-tasks off its queue and then starting or stopping them.
+## Exposing the Worker to the Outside World
 
-We need a way to
-expose those core features so a manager, which will be the exclusive user,
-running on a different machine can make use of them.
+Last time, we defined how a worker pulls tasks off its queue and starts or stops them. That was useful, but it only worked **locally**.
 
-## API Comes to rescue
+In a real orchestration system, the worker will not be operating in isolation. A **manager**, running on a completely different machine, needs a way to interact with it.
 
- API will be simple, perform these basic operations:
-Send a task to the worker (which results in the worker starting the task
-as a container)
-Get a list of the worker’s tasks
-Stop a running task
+This means we need a way to **expose the worker’s core functionality** over the network.
 
-![alt text](</images/Screenshot 2025-12-19 225711.jpg>)
+That’s where an API comes in.
 
+---
 
- web API. This choice means that the
-worker’s API can be exposed across a network and that it will use the HTTP
-protocol.
+## API Comes to the Rescue
 
- three primary
-components:
-Handlers—Functions that are capable of responding to requests
-Routes—Patterns that can be used to match the URL of incoming
-requests
-Router—An object that uses routes to match incoming requests with
-the appropriate handler
+The worker’s API is intentionally simple. It needs to support only a few basic operations:
 
-define parameterized
-routes. What is a parameterized route? It’s a route that defines a URL
-where one or more parts of the URL path are unknown and may change
-from one request to the next
+* Send a task to the worker (which results in the task being started)
+* Get a list of all tasks the worker knows about
+* Stop a running task
 
-Like `/tasks` is different from `/tasks/{taskID}`
+![Worker API Overview](/images/Screenshot%202025-12-19%20225711.jpg)
 
+To keep things simple and familiar, the worker exposes a **web API**. This lets us:
 
- worker’s API is composed of an HTTP server from the
-Go standard library; the routes, router, and handlers from the chi package; and,
-finally, our own worker
+* Communicate over the network
+* Use HTTP as the protocol
+* Leverage Go’s standard library and existing tooling
 
-| Method | Route           | Description                     |
-|--------|-----------------|---------------------------------|
-| GET    | `/tasks`        | Gets a list of all tasks        |
-| POST   | `/tasks`        | Creates a task                  |
-| DELETE | `/tasks/{taskID}` | Stops the task identified by taskID |
+---
 
+## API Building Blocks
 
-## The API struct
+A basic web API consists of three main components:
 
- defined in a file named api.go in the worker/
+* **Handlers**
+  Functions that respond to HTTP requests
 
-  `Address` and `Port` fields for server machine address and listening port
+* **Routes**
+  URL patterns that match incoming requests
 
-   it contains the` Worker` field, which will be a reference to
-an instance of a `Worker` object. Remember, we said the API will wrap the
-worker to expose the worker’s core functionality to the manager.
+* **Router**
+  A component that maps routes to handlers
 
- the struct
-contains the `Router` field, which is a pointer to an instance of `chi.Mux.`
+We also need **parameterized routes**, where part of the URL changes per request.
 
-type Api struct { 
-    Address string 
-    Port    int 
-    Worker  *Worker 
-    Router  *chi.Mux 
+For example:
+
+* `/tasks`
+* `/tasks/{taskID}`
+
+Here, `{taskID}` is a variable that represents a specific task.
+
+---
+
+## Worker API Endpoints
+
+The worker exposes the following endpoints:
+
+| Method | Route             | Description                          |
+| -----: | ----------------- | ------------------------------------ |
+|    GET | `/tasks`          | Get a list of all tasks              |
+|   POST | `/tasks`          | Create (start) a task                |
+| DELETE | `/tasks/{taskID}` | Stop the task identified by `taskID` |
+
+The API itself is built using:
+
+* Go’s `net/http` package
+* The `chi` router
+* Our own `Worker` implementation
+
+---
+
+## The API Struct
+
+The API is defined in `worker/api.go`.
+
+Its job is to **wrap the worker** and expose the worker’s functionality over HTTP.
+
+```go
+type Api struct {
+    Address string
+    Port    int
+    Worker  *Worker
+    Router  *chi.Mux
 }
-
-
-
-## handling requests
-
-
-a handler is a function capable of responding to a
-request. For our API to handle incoming requests, we need to define
-handler methods on the API struct. We’re going to use the following three
-methods, which I’ll list here with their method signatures:
-
 ```
+
+Field breakdown:
+
+* **Address / Port**
+  Where the API server will listen
+
+* **Worker**
+  A pointer to the worker instance whose functionality we are exposing
+
+* **Router**
+  A `chi.Mux` router used to define routes and connect them to handlers
+
+---
+
+## Handling Requests
+
+A handler is simply a function that knows how to respond to an HTTP request.
+
+For the worker API, we define three handler methods on the `Api` struct:
+
+```go
 StartTaskHandler(w http.ResponseWriter, r *http.Request)
 GetTasksHandler(w http.ResponseWriter, r *http.Request)
 StopTaskHandler(w http.ResponseWriter, r *http.Request)
 ```
 
- `StartTaskHandler`
+Each handler is responsible for translating HTTP requests into worker actions.
 
- At a high level, this method reads the body of a request from r.Body,
-converts the incoming data it finds in that body from JSON to an instance
-of our task.TaskEvent type, and then adds that task.TaskEvent to
-the worker’s queue. It wraps up by printing a log message and then adding
-a response code to the http.ResponseWriter
+---
 
- uses `DisallowUnknownFields()` method of `json.Decoder` struct, which will cause the Decode() method to return an error if there are
-fields in the body that are not defined in the destination struct—in our case, task.TaskEvent
+## StartTaskHandler
 
-`GetTasksHandler`
- This method looks simple, but there is a lot going on inside it. It
-starts off by setting the Content-Type header to let the client know we’re sending it JSON data. Then, similar to StartTaskHandler, it adds a
-response code.
-Gets an instance of a json.Encoder type by calling the
-json.NewEncoder() method
-Gets all the worker’s tasks by calling the worker’s GetTasks method
-Transforms the list of tasks into JSON by calling the Encode method on
-the json.Encoder object
+At a high level, `StartTaskHandler`:
 
- `StopTaskHandler`
-see that stopping a task is accomplished by
-sending a request with a path of DELETE /tasks/{taskID}.
-This is all that’s needed to stop a task
-because the worker already knows about the task: it has it stored in its Db field.  taskID, we have to convert it from a string, which
-is the type that chi.URLParam returns to us, into a uuid.UUID type.
-This conversion is done by calling the uuid.Parse()
-we want to do is check whether the worker knows about
-this task. If it doesn’t, we should return a response with a 404 status code.
-If it does, we change the state to task.Completed and add it to the
-worker’s queue.
+1. Reads the request body from `r.Body`
+2. Decodes the JSON payload into a `task.TaskEvent`
+3. Adds the task event to the worker’s queue
+4. Logs what happened
+5. Writes an appropriate HTTP status code to the response
 
-in our StopTaskHandler we’re making a copy of the task in the worker’s
-datastore
+To make this safer, we use:
 
+```go
+decoder.DisallowUnknownFields()
+```
 
-since  we’re using the worker’s datastore to
-represent the current state of tasks, while we’re using the worker’s queue
-to represent the desired state of tasks. So we need to dereference and then assign so it creates a copy.
+This forces the JSON decoder to fail if the request contains fields that don’t exist in `task.TaskEvent`. It helps catch malformed requests early.
 
+---
 
+## GetTasksHandler
 
-## Serving The API (routes)
+This handler looks simple, but there’s quite a bit happening:
 
-API struct that contains the two components that will
-make this possible: the `Worker` and `Router` fields. Each of these is a
-pointer to another type. The Worker field is a pointer to our own Worker
-start and stop tasks and get a list of tasks the worker knows about.
+1. Set the `Content-Type` header to `application/json`
+2. Set an HTTP status code
+3. Create a `json.Encoder`
+4. Fetch all tasks using `worker.GetTasks()`
+5. Encode the task list as JSON and write it to the response
 
-`Router` field is a pointer to a Mux object provided by the chi package, and it will provide the functionality for defining routes and routing requests 
-To serve the worker’s API we need to make two additions to the code
-we’ve written so far. Both additions will be made to the `api.go` file
+This endpoint gives the manager visibility into what the worker is currently running.
 
+---
 
-The first addition is to add the `initRouter()` method to the Api struct
-It starts by creating an instance of a Router by calling
-`chi.NewRouter()`. Then it goes about setting up the routes we defined in the table
+## StopTaskHandler
 
+Stopping a task is done via:
 
-Second Addition is add the `Start()` method to the Api struct,
- This method calls the `initRouter` method  then it starts an HTTP server that will listen for requests.
-The ListenAndServe function is provided by the `http` package from
-Go’s standard library.]
+```text
+DELETE /tasks/{taskID}
+```
 
-Third Addition is the in the `worker.go` library. A function in the `worker` struct GetTasks()
-that returns all the tasks in the workers db. For the `GetTaskHandler` to use
+The steps are:
 
+1. Extract `taskID` from the URL using `chi.URLParam`
+2. Convert it from `string` to `uuid.UUID` using `uuid.Parse`
+3. Check if the worker knows about this task
 
+   * If not, return `404 Not Found`
+4. If it exists:
 
-## lets let our API serve us (main.go)
+   * Change the task state to `Completed`
+   * Add it to the worker’s queue
 
-we’re going to continue our use of 
-main.go, in which we’ll write our main function 
-creates an
-instance of our worker, w, which has a `Queue` and a `Db`. It creates an
-instance of our `API`, api, which uses the host and port values that it
-reads from the local environment. Finally, the` main()` function performs
-the two operations that bring everything to life
+One subtle but important detail here is **copying the task**.
 
-call a function `runTasks` and pass it a
-pointer to the worker `w`. But it also does something else. It has this funny
-go term before calling the runTasks function. What is that about? If
-you’ve used threads in other languages, the go `runTasks(&w)` line is
-similar to using threads
-start our API by calling `api.Start()`
+The worker’s:
 
-`runTasks` function
+* **DB** represents the *current* state
+* **Queue** represents the *desired* state
 
-fairly simple. It’s a continuous loop that checks the worker’s queue
-for tasks and calls the worker’s RunTask method when it finds tasks that
-need to run. For our own convenience, we’re sleeping for 10 seconds
-between each iteration of the loop. This slows things down for us so we can
-easily read any log messages.
+Because of this, we dereference the task from the DB and enqueue a copy with the updated state.
 
+---
 
- API is not calling any worker methods that perform task
-operations (i.e., it is not starting or stopping tasks). Structuring our code in
-this way allows us to separate the concern of handling requests from the
-concern of performing the operations to start and stop tasks
+## Serving the API (Routes)
+
+The `Api` struct already contains everything we need:
+
+* A `Worker` to perform operations
+* A `Router` to route requests
+
+To actually serve the API, we make two additions to `api.go`.
+
+---
+
+### initRouter()
+
+This method initializes routing:
+
+1. Create a router using `chi.NewRouter()`
+2. Define routes for:
+
+   * `GET /tasks`
+   * `POST /tasks`
+   * `DELETE /tasks/{taskID}`
+
+This connects each route to its corresponding handler.
+
+---
+
+### Start()
+
+The `Start()` method brings everything to life:
+
+1. Call `initRouter()`
+2. Start an HTTP server using `http.ListenAndServe`
+
+The server listens on the configured address and port and begins accepting requests.
+
+---
+
+## One More Worker Method: GetTasks
+
+For `GetTasksHandler` to work, the worker needs a helper method:
+
+```text
+GetTasks()
+```
+
+This method simply returns all tasks stored in the worker’s DB.
+
+It lives in `worker.go` and keeps API logic separate from worker internals.
+
+---
+
+## Letting the API Serve Us (main.go)
+
+We continue using `main.go` as our entry point.
+
+The `main()` function does the following:
+
+1. Create a worker `w` with a queue and DB
+2. Create an API `api`, using host and port values from the environment
+3. Start the system
+
+Two important calls make everything work:
+
+---
+
+### Running Tasks Concurrently
+
+```go
+go runTasks(&w)
+```
+
+The `go` keyword starts `runTasks` in a separate goroutine.
+
+If you’re familiar with threads in other languages, this is roughly the same idea.
+
+---
+
+### Starting the API
+
+```go
+api.Start()
+```
+
+This starts the HTTP server and blocks the main thread.
+
+---
+
+## runTasks Function
+
+The `runTasks` function is intentionally simple:
+
+* It runs in an infinite loop
+* Checks the worker’s queue
+* Calls `RunTask()` when tasks are available
+* Sleeps for 10 seconds between iterations
+
+The sleep makes logs easier to read while experimenting.
+
+---
+
+## Separation of Concerns
+
+One important design decision here is that:
+
+> The API does **not** start or stop tasks directly.
+
+Instead:
+
+* The API **enqueues desired state**
+* The worker **reconciles state and performs actions**
+
+This clean separation makes the system easier to reason about and evolve over time.
+
+At this point, we have a worker that can be controlled remotely — a major step toward a real orchestration system.
