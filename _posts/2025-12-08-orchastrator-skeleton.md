@@ -21,7 +21,7 @@ Everything in the system exists to create, move, run, stop, or observe tasks.
 
 Below is a basic skeleton I found online that inspired this structure:
 
-![Basic Skeleton](../images/Screenshot%202025-12-09%20014025.jpg)
+![Basic Skeleton](/images/Screenshot%202025-12-09%20014025.jpg)
 
 ---
 
@@ -46,7 +46,7 @@ A task in the system moves through a well-defined lifecycle. I model this explic
 * **Failed**
   The task crashed or stopped working as expected at any point.
 
-![Task State Diagram](../images/Screenshot%202025-12-09%20014218.jpg)
+![Task State Diagram](/images/Screenshot%202025-12-09%20014218.jpg)
 
 ---
 

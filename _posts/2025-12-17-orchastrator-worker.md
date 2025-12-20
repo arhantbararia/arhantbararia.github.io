@@ -34,7 +34,7 @@ Running **multiple instances** of the same web server across different machines 
 
 The worker allows us to scale applications horizontally by running multiple instances of the same task across machines.
 
-![Worker Concept](../images/Screenshot%202025-12-17%20195209.jpg)
+![Worker Concept](/images/Screenshot%202025-12-17%20195209.jpg)
 ---
 
 ## A Small Terminology Note
@@ -61,7 +61,7 @@ The worker itself is composed of several smaller pieces:
 4. **Task Database (DB)** – tracks task state
 5. **Metrics** – reports stats to the manager
 
-![Worker Components](../images/Screenshot%202025-12-17%20195416.jpg)
+![Worker Components](/images/Screenshot%202025-12-17%20195416.jpg)
 
 ---
 
