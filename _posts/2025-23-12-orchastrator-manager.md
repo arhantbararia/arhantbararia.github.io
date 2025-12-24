@@ -310,3 +310,117 @@ This function:
 This keeps setup logic clean and centralized.
 
 ---
+### Thinking About Failures and Resiliency
+
+At this stage, even though the manager can select a worker from a pool and send it a task to run, it isn’t really *handling failures*. The manager is mostly acting as a recorder of facts, tracking the state of the world inside its `TaskDB`.
+
+What we’re slowly moving toward, however, is a **declarative system**.
+
+In a declarative system, the user doesn’t tell the system *how* to run a task. Instead, the user declares the **desired state** of a task, and the system’s responsibility is to make a reasonable effort to reach that state.
+
+Right now, “reasonable effort” simply means **trying once** to bring a task into the desired state. That’s clearly not enough for a production-grade system, but it’s a good starting point. We’ll revisit failures, retries, and resiliency in more depth later.
+
+---
+
+## Putting It All Together
+
+So far, we’ve mostly focused on running a **worker** in isolation. Now it’s time to put the bigger picture together.
+
+In `main.go`, we want to run **both** a worker and a manager.
+
+Running a manager by itself doesn’t make sense — a manager only exists to coordinate one or more workers. So from this point onward, both components need to run together.
+
+---
+
+### Running the Worker Concurrently
+
+We start by launching the worker-related processes.
+
+- We call `runTasks` in a goroutine using the `go` keyword.
+- We start another goroutine to call the worker’s `CollectStats()` method, which periodically gathers metrics from the machine the worker is running on.
+
+Next, we start the worker’s API server.
+
+Here’s an important change: instead of calling `api.Start()` directly in the main goroutine, we launch it in **another goroutine**. This allows the worker to:
+
+- Process tasks
+- Collect metrics
+- Serve API requests  
+
+all at the same time.
+
+---
+
+### Starting the Manager
+
+Once the worker is up and running, we create an instance of the manager.
+
+We begin by creating a list of workers and assigning it to a variable called `workers`. This is simply a slice of strings. For now, it contains only one entry: the single worker we just started.
+
+Next, we create the manager instance by calling the `New` function we defined earlier and passing in this list of workers.
+
+---
+
+### Submitting Tasks Through the Manager
+
+Here’s a key shift in how the system works.
+
+Instead of adding a `TaskEvent` directly to the worker, we now:
+
+1. Add the task event to the **manager** using `m.AddTask(te)`
+2. Call `m.SendWork()`
+
+The `SendWork` method selects a worker (currently the only one available) and sends the task event to that worker using the worker’s API.
+
+This small change is important:  
+**all task submissions now flow through the manager**, not directly to workers.
+
+---
+
+### What Just Happened?
+
+Let’s pause and recap what the system is doing:
+
+- We created a worker, and it is running and listening for API requests.
+- We created a manager with a list containing that single worker.
+- We created three tasks and added them to the manager.
+- The manager selected a worker and sent those tasks to it.
+- The worker received the tasks and attempted to start them.
+
+At this point, tasks are running (or at least attempting to run) on the worker.
+
+---
+
+### Keeping the Manager in Sync
+
+Once tasks have been sent to workers, the manager still has work to do.
+
+We call the manager’s `UpdateTasks` method so it can:
+
+- Query workers
+- Fetch the current task states
+- Update its internal view of the system
+
+This step is critical because the manager treats workers as the **source of truth** for task state.
+
+---
+
+### Observing State Changes
+
+To make things easier to observe, we add another infinite loop.
+
+This loop:
+
+- Iterates over all tasks known to the manager
+- Prints each task’s ID and current state
+
+As `UpdateTasks` runs, we can visually see tasks transitioning between states.
+
+To run this loop concurrently, we wrap it in an anonymous function and launch it in a goroutine. This pattern is very common in Go and makes it easy to run background logic without blocking the rest of the program.
+
+---
+
+At this point, the system finally starts to feel *alive*.  
+The manager coordinates, the worker executes, and state flows continuously between them.
+
+
