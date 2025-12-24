@@ -1,10 +1,9 @@
-```md
 ---
 layout: post
 title: Orchestrator, The Manager
 date: 2025-12-23
 ---
-```
+
 
 ## Why Do We Need a Manager?
 
