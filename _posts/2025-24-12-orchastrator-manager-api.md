@@ -44,9 +44,8 @@ Each of them follows the same basic pattern:
 * An **API server**
 * A **core component** (manager logic or worker logic)
 
-![Image](https://fabric.inc/wp-content/uploads/2023/05/api-orchestration-diagram.gif)
+![alt text](<../images/Screenshot 2025-12-24 222535.jpg>)
 
-![Image](https://pinggy.io/assets/control_plane.png)
 
 This symmetry is intentional and makes the system easier to reason about.
 
