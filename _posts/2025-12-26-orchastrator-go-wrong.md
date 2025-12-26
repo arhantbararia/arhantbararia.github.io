@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Orchestrator, What Could Possibly Go Wrong
-date: 2025-12-27
+date: 2025-12-26
 ---
 
 As Edward Murphy Jr. famously said: "Anything that can go wrong will go wrong." 
