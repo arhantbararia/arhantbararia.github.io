@@ -44,7 +44,7 @@ Each of them follows the same basic pattern:
 * An **API server**
 * A **core component** (manager logic or worker logic)
 
-![alt text](<../images/Screenshot 2025-12-24 222535.jpg>)
+![alt text](</images/Screenshot 2025-12-24 222535.jpg>)
 
 
 This symmetry is intentional and makes the system easier to reason about.
