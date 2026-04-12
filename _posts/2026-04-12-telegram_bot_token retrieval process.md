@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Telegram Chat ID and Bot token retrieval
-date: 2025-04-12
+date: 2026-04-12
 ---
 
 So, I’ve been trying to wire up some Telegram bot integrations lately, and let me tell you, wrapping my head around how Telegram handles permissions was a bit of a trip. I expected some crazy OAuth2 flow with 15 different redirect URIs. Turns out? You literally just text a bot. 
