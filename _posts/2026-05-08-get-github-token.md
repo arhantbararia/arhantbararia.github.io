@@ -4,10 +4,8 @@ title: "Getting a GitHub Personal Access Token - A Complete Guide"
 date: 2026-05-08
 categories: github authentication api
 ---
+If you're building applications that interact with GitHub—whether you're automating workflows, syncing repositories, or connecting GitHub with tools like Sequels.diy you'll need a secure way to authenticate. That's where Personal Access Tokens come in. They're the recommended way to access GitHub programmatically, replacing the need to expose your main password. In this guide, we'll walk you through creating, configuring, and securely managing your tokens so you can start automating with confidence.
 
-# Getting a GitHub Personal Access Token - Complete Guide
-
- This is something you'll need if you want to integrate GitHub with Sequels.diy and other services. I was confused about this at first, but it's actually pretty straightforward once you know the steps!
 
 ## What is a Personal Access Token?
 
