@@ -4,7 +4,7 @@ title: "Sequels.diy compatible Action development guide"
 date: 2026-06-22
 categories: sequels action dev-guide
 ---
-This guide provides a concise, language-agnostic specification and implementation blueprint for building Sequels.diy-compatible trigger plugins. It covers architecture, data models, HTTP endpoints, RabbitMQ publishing, polling strategies, and deployment patterns so you can implement reliable triggers in any language that supports HTTP and Rabbit MQ AMQP.
+This guide provides a concise, language-agnostic specification and implementation blueprint for building Sequels.diy-compatible action plugins. It covers architecture, data models, HTTP endpoints, RabbitMQ consumption, task execution, and deployment patterns so you can implement reliable actions in any language that supports HTTP and RabbitMQ AMQP.
 
 > **Language-agnostic specification.** All examples use JSON for data structures. Implement in any language that can serve HTTP, connect to RabbitMQ (AMQP 0-9-1), and make outbound HTTP requests.
 
